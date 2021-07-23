@@ -1,0 +1,21 @@
+{
+    "object_group": {
+        "name": "testdata",
+        "dataset_id": "9d3d87ac-e997-459e-8884-dba69dee38fb",
+        "labels": [
+            {"key": "test", "value": "baa"}
+        ]
+    },
+    "object_group_version": {
+        "objects": [
+            {
+                "filename": "testfile",
+                "filetype": "txt",
+                "labels": [
+                    {"key": "test", "value": "baa"}
+                ],
+                "content_len": 15
+            }
+        ]
+    }
+}

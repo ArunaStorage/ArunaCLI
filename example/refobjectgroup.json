@@ -1,0 +1,19 @@
+{
+    "Name": "Legionella_Ref",
+    "Objects": [
+    {
+        "Filename": "l_pneumophila_nc_009494.fasta",
+        "Filetype": "fasta",
+        "ContentLen": 3627628,
+        "Labels": []
+    },
+    {
+        "Filename": "l_pneumophila_nc_009494.fasta.fai",
+        "Filetype": "fasta.fai",
+        "ContentLen": 27,
+        "Labels": []
+    }
+    ],
+    "Labels": [],
+    "DatasetID": "fbe2259c-e7c2-4679-adda-c949f4afcfdc"
+}
