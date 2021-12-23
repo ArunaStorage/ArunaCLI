@@ -1,1 +1,2 @@
-# ScienceObjectsDBClient
+# ScienceObjectsDB Client
+This is a simple CLI application for the ScienceObjectsDB API. Its currently work in progress and will be developed along with the API. Neither concept not implementation are final.
