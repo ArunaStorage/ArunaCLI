@@ -9,6 +9,9 @@ mod util;
 use clap::{AppSettings, Parser, Subcommand};
 use tonic::transport::ClientTlsConfig;
 
+use crate::load::download_path_handler::CanonicalDownloadPathHandler;
+use crate::load::download_path_handler::FlatpathDownloadManager;
+
 #[derive(Parser)]
 #[clap(setting(AppSettings::SubcommandRequiredElseHelp))]
 #[clap(about, version, author)]
@@ -27,10 +30,19 @@ enum Commands {
     EventStream(util::cli::Stream),
     /// Creates the given resource type from the given file
     Create(util::cli::CreateRequest),
+    /// Loads a given resource to disk
+    /// There are two possible directory structures {n}\
+    /// 1. Canonical (Default)
+    ///   The canonical structure is based on the internal structure of the stored data, so the structure will always be
+    ///   /<project_id>/<dataset_id>/_data/<object_group_name>/<object_name>. Datasetversions will be stored under
+    ///   /<project_id>/<dataset_id>/_datasetversion/<object_group_name>/<object_name>
+    Load(util::cli::Load),
 }
 
 #[tokio::main]
 async fn main() {
+    console_subscriber::init();
+
     let cli = Cli::parse();
 
     let tls_config = ClientTlsConfig::new();
@@ -59,5 +71,21 @@ async fn main() {
             let mut create = create::create::Create::new(client.clone());
             create.create(request).await;
         }
+        Commands::Load(request) => match request.path_style {
+            util::cli::DownloadPathStyle::Canonical => {
+                load::download_handler::DownloadHandler::download::<CanonicalDownloadPathHandler>(
+                    request,
+                    client.clone(),
+                )
+                .await
+            }
+            util::cli::DownloadPathStyle::Flat => {
+                load::download_handler::DownloadHandler::download::<FlatpathDownloadManager>(
+                    request,
+                    client.clone(),
+                )
+                .await
+            }
+        },
     };
 }

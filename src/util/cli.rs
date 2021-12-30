@@ -29,13 +29,6 @@ pub struct Stream {
     pub id: String,
 }
 
-
-// Loads a given resource to disk
-// There are two possible directory structures
-// 1. Canonical (Default)
-//   The canonical structure is based on the internal structure of the stored data, so the structure will always be
-//   /<project_id>/<dataset_id>/_data/<object_group_name>/<object_name>. Datasetversions will be stored under
-//   /<project_id>/<dataset_id>/_datasetversion/<object_group_name>/<object_name>
 #[derive(Parser)]
 pub struct Load {
     /// The resource type to load
@@ -47,6 +40,9 @@ pub struct Load {
     /// The base path of the loaded resource
     #[clap(short = 'p')]
     pub path: String,
+    /// Download target path style
+    #[clap(arg_enum, short = 's', default_value = "canonical")]
+    pub path_style: DownloadPathStyle,
 }
 
 #[derive(Parser)]
@@ -81,4 +77,10 @@ pub enum LsResource {
     DatasetObjectGroups,
     DatasetVersions,
     DatasetVersionObjectGroups,
+}
+
+#[derive(PartialEq, Debug, ArgEnum, Clone)]
+pub enum DownloadPathStyle {
+    Canonical,
+    Flat,
 }
