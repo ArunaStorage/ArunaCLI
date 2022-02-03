@@ -20,13 +20,20 @@ pub struct Describe {
 }
 
 #[derive(Parser)]
-pub struct Stream {
+pub struct CreateStreamConsumer {
     /// The resource type to describe
     #[clap(arg_enum, short = 'r')]
     pub resource: Resource,
     /// The id of the resource to describe
     #[clap(short = 'i')]
     pub id: String,
+}
+
+#[derive(Parser)]
+pub struct Stream {
+    /// The id of the resource to describe
+    #[clap(short = 'i')]
+    pub consumer_group_id: String,
 }
 
 #[derive(Parser)]

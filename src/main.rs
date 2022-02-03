@@ -1,16 +1,18 @@
+#![feature(generators, generator_trait)]
+
 mod client;
 mod create;
 mod describe;
+mod download;
 mod events;
-mod load;
 mod ls;
 mod util;
 
 use clap::{AppSettings, Parser, Subcommand};
 use tonic::transport::ClientTlsConfig;
 
-use crate::load::download_path_handler::CanonicalDownloadPathHandler;
-use crate::load::download_path_handler::FlatpathDownloadManager;
+use crate::download::download_path_handler::CanonicalDownloadPathHandler;
+use crate::download::download_path_handler::FlatpathDownloadManager;
 
 #[derive(Parser)]
 #[clap(setting(AppSettings::SubcommandRequiredElseHelp))]
@@ -28,6 +30,8 @@ enum Commands {
     Describe(util::cli::Describe),
     /// The event stream of the given ressource
     EventStream(util::cli::Stream),
+    /// Creates a consumer for the event group
+    CreateStreamConsumer(util::cli::CreateStreamConsumer),
     /// Creates the given resource type from the given file
     Create(util::cli::CreateRequest),
     /// Loads a given resource to disk
@@ -73,19 +77,23 @@ async fn main() {
         }
         Commands::Load(request) => match request.path_style {
             util::cli::DownloadPathStyle::Canonical => {
-                load::download_handler::DownloadHandler::download::<CanonicalDownloadPathHandler>(
+                download::download_handler::DownloadHandler::download::<CanonicalDownloadPathHandler>(
                     request,
                     client.clone(),
                 )
                 .await
             }
             util::cli::DownloadPathStyle::Flat => {
-                load::download_handler::DownloadHandler::download::<FlatpathDownloadManager>(
+                download::download_handler::DownloadHandler::download::<FlatpathDownloadManager>(
                     request,
                     client.clone(),
                 )
                 .await
             }
+        },
+        Commands::CreateStreamConsumer(request) => {
+            let mut stream = events::events::Events::new(client.clone());
+            stream.create_stream_consumer(request).await;
         },
     };
 }
