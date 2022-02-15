@@ -1,4 +1,4 @@
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::{
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::services::v1::{
     GetDatasetRequest, GetDatasetVersionRequest, GetObjectGroupRequest, GetProjectRequest,
 };
 

@@ -7,7 +7,7 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 
 use tokio::io::AsyncReadExt;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::{
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::{
     models::{self},
     services::v1::{
         CompleteMultipartUploadRequest, CompletedParts, CreateDatasetRequest,

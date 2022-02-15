@@ -1,7 +1,9 @@
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::{
-    dataset_objects_service_client, dataset_service_client, object_load_service_client,
-    project_service_client::{self},
-    update_notification_service_client,
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::{
+    notification::services::v1::update_notification_service_client,
+    storage::services::v1::{
+        dataset_objects_service_client, dataset_service_client, object_load_service_client,
+        project_service_client::{self},
+    },
 };
 
 use tonic::codegen::InterceptedService;
