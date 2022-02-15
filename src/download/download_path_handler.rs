@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::models::v1::{Dataset, Object};
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::models::v1::{
+    Dataset, Object,
+};
 
 const DATASET_DATA_DIR_NAME: &str = "_data";
 const DATASET_INDEX_DIR_NAME: &str = "_index";

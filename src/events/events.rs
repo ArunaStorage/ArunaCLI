@@ -1,16 +1,13 @@
 use futures_util::StreamExt;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::CreateEventStreamingGroupRequest;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::NotficationStreamAck;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::NotificationStreamGroupRequest;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::NotificationStreamInit;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::StreamAll;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::create_event_streaming_group_request::StreamType;
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::notification::services::v1::create_event_streaming_group_request::StreamType;
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::notification::services::v1::{
+    create_event_streaming_group_request, CreateEventStreamingGroupRequest, StreamAll, NotificationStreamGroupRequest, NotificationStreamInit,
+};
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::create_event_streaming_group_request;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::notification_stream_group_request::StreamAction::Init;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::notification_stream_group_request::StreamAction::Ack;
-
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::notification::services::v1::notification_stream_group_request::StreamAction::Init;
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::notification::services::v1::notification_stream_group_request::StreamAction::Ack;
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::notification::services::v1::NotficationStreamAck;
 use tonic::Request;
 
 use crate::client::client;

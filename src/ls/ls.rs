@@ -1,7 +1,7 @@
 use crate::client::client;
 use crate::util::cli;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::{
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::services::v1::{
     GetDatasetObjectGroupsRequest, GetDatasetVersionObjectGroupsRequest, GetDatasetVersionsRequest,
     GetProjectDatasetsRequest,
 };
@@ -35,7 +35,7 @@ impl LS {
             .unwrap()
             .into_inner();
 
-        println!("{:#?}", datasets.dataset)
+        println!("{:#?}", datasets.datasets)
     }
 
     async fn ls_dataset_object_groups(&mut self, request: cli::Ls) {

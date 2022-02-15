@@ -8,7 +8,7 @@ use futures::{
     future::{try_join, try_join_all},
     StreamExt,
 };
-use scienceobjectsdb_rust_api::sciobjectsdbapi::{
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::{
     models::v1::{Object, PageRequest},
     services::v1::{
         CreateDownloadLinkRequest, GetDatasetObjectGroupsRequest, GetObjectGroupRequest,
@@ -104,7 +104,7 @@ impl DownloadHandler {
             .await?
             .into_inner();
 
-        for dataset in project_datasets.dataset {
+        for dataset in project_datasets.datasets {
             DownloadHandler::download_dataset(client.clone(), dataset.id, sender.clone()).await?;
         }
 
