@@ -35,7 +35,7 @@ impl Config {
             }
         }
 
-        panic!("could not find required config")
+        panic!("could not find default config")
     }
     pub async fn specified_path(config_path: &str) -> Self {
         let config_path = Path::new(config_path);
