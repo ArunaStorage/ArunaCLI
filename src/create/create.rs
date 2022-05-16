@@ -123,7 +123,7 @@ impl Create {
             dataset_id: dataset_version_request.dataset_id,
             description: dataset_version_request.description,
             labels: labels,
-            object_group_ids: dataset_version_request.objects_ids,
+            object_group_revision_ids: dataset_version_request.objects_ids,
             ..Default::default()
         };
 
