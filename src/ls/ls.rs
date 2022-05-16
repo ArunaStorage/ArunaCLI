@@ -77,6 +77,6 @@ impl LS {
             .unwrap()
             .into_inner();
 
-        println!("{:#?}", object_groups.object_group)
+        println!("{:#?}", object_groups.object_group_revisions)
     }
 }
