@@ -8,14 +8,14 @@ mod events;
 mod ls;
 mod util;
 
-use clap::{AppSettings, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use tonic::transport::ClientTlsConfig;
 
 use crate::download::download_path_handler::CanonicalDownloadPathHandler;
 use crate::download::download_path_handler::FlatpathDownloadManager;
 
 #[derive(Parser)]
-#[clap(setting(AppSettings::SubcommandRequiredElseHelp))]
+#[clap(subcommand_required = true, arg_required_else_help = true)]
 #[clap(about, version, author)]
 struct Cli {
     #[clap(subcommand)]

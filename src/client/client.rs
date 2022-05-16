@@ -61,7 +61,7 @@ impl tonic::service::Interceptor for ClientInterceptor {
         let metadata = mut_req.metadata_mut();
         metadata.append(
             AsciiMetadataKey::from_bytes(API_TOKEN_ENTRY_KEY.as_bytes()).unwrap(),
-            AsciiMetadataValue::from_str(self.api_token.as_str()).unwrap(),
+            AsciiMetadataValue::try_from(self.api_token.as_str()).unwrap(),
         );
 
         return Ok(mut_req);
