@@ -25,4 +25,4 @@ serde_yaml = "0.8"
 sled = "0.34"
 tokio = {version = "1", features = ["full"]}
 tokio-util = "0.6"
-tonic = {version = "0.6", features = ["tls", "tls-roots"]}
+tonic = {version = "0", features = ["tls", "tls-roots"]}
