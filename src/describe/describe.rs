@@ -53,7 +53,13 @@ impl Describe {
                 let object_group = self
                     .client
                     .dataset_object_service
-                    .get_object_group(GetObjectGroupRequest { id: request.id })
+                    .get_object_group(GetObjectGroupRequest {
+                        id: request.id,
+                        // Not sure how to deal with that:
+                        // user maybe needs to specifiy which version but
+                        // describing can also be verbose
+                        pagination: None,
+                    })
                     .await
                     .unwrap()
                     .into_inner();
