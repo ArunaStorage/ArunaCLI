@@ -55,9 +55,7 @@ impl Describe {
                     .dataset_object_service
                     .get_object_group(GetObjectGroupRequest {
                         id: request.id,
-                        // Not sure how to deal with that:
-                        // user maybe needs to specifiy which version but
-                        // describing can also be verbose
+                        // left empty to show all revisions
                         pagination: None,
                     })
                     .await

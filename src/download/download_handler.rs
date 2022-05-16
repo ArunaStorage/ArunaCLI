@@ -133,15 +133,22 @@ impl DownloadHandler {
 
             let object_group_count = object_groups.object_groups.len() as u64;
             for object_group in object_groups.object_groups {
-                for object in object_group.objects {
-                    prev_last_uuid = object.id.clone();
-                    let msg = ObjectDownloadMessage {
-                        object: object,
-                        object_group_name: object_group.name.clone(),
-                    };
+                match object_group.current_revision {
+                    // if failed to retrieve current_revision
+                    // the next object group will be tried
+                    Some(object_group_revision) => {
+                        for object in object_group_revision.objects {
+                            prev_last_uuid = object.id.clone();
+                            let msg = ObjectDownloadMessage {
+                                object: object,
+                                object_group_name: object_group_revision.name.clone(),
+                            };
 
-                    sender.send(msg).await?;
-                }
+                            sender.send(msg).await?;
+                        }
+                    }
+                    None => continue,
+                };
             }
 
             if object_group_count != DATASET_OBJECT_GROUP_PAGE_SIZE {
@@ -161,18 +168,24 @@ impl DownloadHandler {
             .dataset_object_service
             .get_object_group(GetObjectGroupRequest {
                 id: object_group_id,
+                pagination: None,
             })
             .await?
             .into_inner();
         let object_group = object_group_response.object_group.unwrap();
-
-        for object in object_group.objects {
-            let msg = ObjectDownloadMessage {
-                object: object,
-                object_group_name: object_group.name.clone(),
-            };
-            sender.send(msg).await?;
-        }
+        // not sure if this makes sense
+        match object_group.current_revision {
+            Some(object_group_revision) => {
+                for object in object_group_revision.objects {
+                    let msg = ObjectDownloadMessage {
+                        object: object,
+                        object_group_name: object_group_revision.name.clone(),
+                    };
+                    sender.send(msg).await?;
+                }
+            }
+            None => (),
+        };
 
         return Ok(());
     }
