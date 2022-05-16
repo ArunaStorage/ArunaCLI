@@ -10,6 +10,7 @@ mod util;
 
 use clap::{Parser, Subcommand};
 use tonic::transport::ClientTlsConfig;
+use util::config;
 
 use crate::download::download_path_handler::CanonicalDownloadPathHandler;
 use crate::download::download_path_handler::FlatpathDownloadManager;
@@ -18,6 +19,9 @@ use crate::download::download_path_handler::FlatpathDownloadManager;
 #[clap(subcommand_required = true, arg_required_else_help = true)]
 #[clap(about, version, author)]
 struct Cli {
+    #[clap(short)]
+    /// Path to the config file. Defaults to: .config/sciobjsdbcli/config.yaml or .sciobjsdb/config.yaml
+    config: Option<String>,
     #[clap(subcommand)]
     command: Commands,
 }
@@ -51,7 +55,10 @@ async fn main() {
 
     let tls_config = ClientTlsConfig::new();
 
-    let config = util::config::Config::new().await;
+    let config = match cli.config {
+        Some(config) => util::config::Config::specified_path(config.as_str()).await,
+        None => util::config::Config::new().await,
+    };
     let mut endpoint = tonic::transport::Channel::from_shared(config.endpoint).unwrap();
     endpoint = endpoint.tls_config(tls_config).unwrap();
 
