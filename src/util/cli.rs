@@ -76,6 +76,7 @@ pub enum CreateResource {
     Dataset,
     DatasetVersion,
     ObjectGroup,
+    Object,
 }
 
 #[derive(PartialEq, Debug, ArgEnum, Clone)]

@@ -127,6 +127,7 @@ impl DownloadHandler {
                         page_size: DATASET_OBJECT_GROUP_PAGE_SIZE,
                         last_uuid: prev_last_uuid.clone(),
                     }),
+                    label_filter: None,
                 })
                 .await?
                 .into_inner();

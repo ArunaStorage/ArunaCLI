@@ -45,6 +45,7 @@ impl LS {
             .get_dataset_object_groups(GetDatasetObjectGroupsRequest {
                 id: request.id,
                 page_request: None,
+                label_filter: None,
             })
             .await
             .unwrap()

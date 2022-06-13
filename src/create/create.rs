@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use crate::{client::client, util::cli::CreateRequest};
 
@@ -8,11 +8,12 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 use tokio::io::AsyncReadExt;
 
 use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::{
-    models::{self},
+    models,
     services::v1::{
-        CompleteMultipartUploadRequest, CompletedParts, CreateDatasetRequest,
-        CreateObjectGroupRequest, CreateObjectRequest, CreateUploadLinkRequest,
-        GetMultipartUploadLinkRequest, ReleaseDatasetVersionRequest, StartMultipartUploadRequest,
+        AddObjectRequest, CompleteMultipartUploadRequest, CompletedParts, CreateDatasetRequest,
+        CreateObjectGroupRequest, CreateObjectGroupRevisionRequest, CreateObjectRequest,
+        CreateUploadLinkRequest, GetMultipartUploadLinkRequest, ReleaseDatasetVersionRequest,
+        StartMultipartUploadRequest, UpdateObjectsRequests,
     },
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -46,21 +47,22 @@ pub struct CreateObjectGroup {
     dataset_id: String,
     description: String,
     labels: Vec<Label>,
-    object_files: Vec<CreateObjectFromFile>,
+    objects_ids: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CreateObjectBatch {
     objects: Vec<CreateObject>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreateObject {
+    dataset_id: String,
+    path: String,
     content_len: i64,
     filename: String,
     filetype: String,
     labels: Vec<Label>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CreateObjectFromFile {
-    path: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -83,6 +85,7 @@ impl Create {
             crate::util::cli::CreateResource::ObjectGroup => {
                 self.create_object_group(request).await
             }
+            crate::util::cli::CreateResource::Object => self.create_objects(request).await,
         }
     }
 
@@ -143,51 +146,73 @@ impl Create {
             .map(|x| x.to_proto_label())
             .collect();
 
-        let mut from_file_requests = Vec::new();
-        let mut create_objects_requests = Vec::new();
-
-        for object in &create_object_group_config.object_files {
-            let create_object_request = self.create_object_from_file(object).await;
-            create_objects_requests.push(create_object_request);
-            from_file_requests.push(object);
-        }
-
-        for object in &create_object_group_config.objects {
-            let create_object_request = self.create_object(object).await;
-            create_objects_requests.push(create_object_request);
-        }
-
+        let create_revision_request = match create_object_group_config.objects_ids {
+            Some(object_ids) => {
+                let ids: Vec<AddObjectRequest> = object_ids
+                    .into_iter()
+                    .map(|x| AddObjectRequest { id: x })
+                    .collect();
+                CreateObjectGroupRevisionRequest {
+                    description: create_object_group_config.description,
+                    include_object_link: false,
+                    labels: labels,
+                    name: create_object_group_config.name,
+                    update_objects: Some(UpdateObjectsRequests {
+                        add_objects: ids,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }
+            }
+            None => CreateObjectGroupRevisionRequest {
+                description: create_object_group_config.description,
+                include_object_link: false,
+                labels: labels,
+                name: create_object_group_config.name,
+                ..Default::default()
+            },
+        };
         let create_object_group_request = CreateObjectGroupRequest {
             dataset_id: create_object_group_config.dataset_id,
-            description: create_object_group_config.description,
-            include_object_link: false,
-            labels: labels,
-            name: create_object_group_config.name,
-            objects: create_objects_requests,
-            ..Default::default()
+            create_revision_request: Some(create_revision_request),
         };
 
-        let create_object_group_response = self
-            .client
+        self.client
             .dataset_object_service
             .create_object_group(create_object_group_request)
             .await
             .unwrap()
             .into_inner();
+    }
 
-        for object_link in create_object_group_response.object_links {
-            let from_file_request = from_file_requests[usize::try_from(object_link.index).unwrap()];
+    async fn create_objects(&mut self, request: CreateRequest) {
+        let create_object_batch_config: CreateObjectBatch =
+            self.read_request_file(request.path.clone()).await;
+        let mut object_map = HashMap::new();
 
-            let path = Path::new(from_file_request.path.as_str());
-            let file = tokio::fs::File::open(path).await.unwrap();
+        for object in &create_object_batch_config.objects {
+            let create_object_request = self.create_object_from_file(object).await;
+            object_map.insert(object.path.to_owned(), create_object_request);
+        }
+
+        for (path, request) in object_map {
+            let create_objects_response = self
+                .client
+                .dataset_object_service
+                .create_object(request)
+                .await
+                .unwrap()
+                .into_inner();
+            let as_path = Path::new(path.as_str());
+            let file = tokio::fs::File::open(as_path).await.unwrap();
 
             let size = file.metadata().await.unwrap().len() as usize;
 
             if size < UPLOAD_BUFFER_SIZE {
-                self.upload_file(from_file_request.path.clone(), object_link.object_id)
+                self.upload_file(path.clone(), create_objects_response.id)
                     .await
             } else {
-                self.upload_file_multipart(from_file_request.path.clone(), object_link.object_id)
+                self.upload_file_multipart(path.clone(), create_objects_response.id)
                     .await;
             }
         }
@@ -290,10 +315,7 @@ impl Create {
         return etag;
     }
 
-    async fn create_object_from_file(
-        &self,
-        create_object: &CreateObjectFromFile,
-    ) -> CreateObjectRequest {
+    async fn create_object_from_file(&self, create_object: &CreateObject) -> CreateObjectRequest {
         let path = Path::new(create_object.path.as_str());
         let file = tokio::fs::File::open(path).await.unwrap();
         let filename = path.file_stem().unwrap().to_str().unwrap().to_string();
@@ -302,28 +324,21 @@ impl Create {
             None => "".to_string(),
         };
 
+        let labels = create_object
+            .labels
+            .iter()
+            .map(|x| x.to_proto_label())
+            .collect();
         let create_object_request = CreateObjectRequest {
+            dataset_id: create_object.dataset_id.clone(),
             content_len: file.metadata().await.unwrap().len() as i64,
             filename: filename,
             filetype: file_extension,
-            ..Default::default()
-        };
-
-        return create_object_request;
-    }
-
-    async fn create_object(&self, request: &CreateObject) -> CreateObjectRequest {
-        let labels = request.labels.iter().map(|x| x.to_proto_label()).collect();
-
-        let create_object_api_request = CreateObjectRequest {
-            content_len: request.content_len,
-            filename: request.filename.clone(),
-            filetype: request.filetype.clone(),
             labels: labels,
             ..Default::default()
         };
 
-        return create_object_api_request;
+        return create_object_request;
     }
 
     async fn read_request_file<Z: DeserializeOwned>(&self, file_path: String) -> Z {
