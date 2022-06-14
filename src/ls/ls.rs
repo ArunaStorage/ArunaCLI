@@ -2,8 +2,8 @@ use crate::client::client;
 use crate::util::cli;
 
 use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::services::v1::{
-    GetDatasetObjectGroupsRequest, GetDatasetVersionObjectGroupsRequest, GetDatasetVersionsRequest,
-    GetProjectDatasetsRequest,
+    GetDatasetObjectGroupsRequest, GetDatasetObjectsRequest, GetDatasetVersionObjectGroupsRequest,
+    GetDatasetVersionsRequest, GetProjectDatasetsRequest,
 };
 
 pub struct LS {
@@ -23,6 +23,7 @@ impl LS {
             cli::LsResource::DatasetVersionObjectGroups => {
                 self.ls_dataset_version_object_groups(request).await
             }
+            cli::LsResource::DatasetObjects => self.ls_dataset_objects(request).await,
         }
     }
 
@@ -79,5 +80,27 @@ impl LS {
             .into_inner();
 
         println!("{:#?}", object_groups.object_group_revisions)
+    }
+    async fn ls_dataset_objects(&mut self, request: cli::Ls) {
+        let objects = self
+            .client
+            .dataset_service
+            .get_dataset_objects(GetDatasetObjectsRequest {
+                id: request.id,
+                page_request: None,
+                label_filter: None,
+            })
+            .await
+            .unwrap()
+            .into_inner();
+        println!("{:#?}", objects);
+        println!(
+            "IDs: {:#?}",
+            objects
+                .objects
+                .into_iter()
+                .map(|x| x.id)
+                .collect::<Vec<String>>()
+        )
     }
 }
