@@ -22,15 +22,12 @@ impl Config {
             path_buf.push(homedir);
             path_buf.push(search_path);
             let path = path_buf.as_path();
-            println!("Config Path: {}", path.to_str().unwrap());
             if path.is_file() {
                 let mut data = String::new();
                 let mut conf_file = tokio::fs::File::open(path).await.unwrap();
                 conf_file.read_to_string(&mut data).await.unwrap();
                 let conf: Config = serde_yaml::from_str(data.as_str()).unwrap();
 
-                println!("Endpoint: {}", conf.endpoint);
-                println!("Api-Token: {}", conf.api_key);
                 return conf;
             }
         }
@@ -45,8 +42,6 @@ impl Config {
             conf_file.read_to_string(&mut data).await.unwrap();
             let conf: Config = serde_yaml::from_str(data.as_str()).unwrap();
 
-            println!("Endpoint: {}", conf.endpoint);
-            println!("Api-Token: {}", conf.api_key);
             return conf;
         }
 
