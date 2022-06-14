@@ -85,6 +85,7 @@ pub enum LsResource {
     DatasetObjectGroups,
     DatasetVersions,
     DatasetVersionObjectGroups,
+    DatasetObjects,
 }
 
 #[derive(PartialEq, Debug, ArgEnum, Clone)]
