@@ -169,6 +169,7 @@ impl Create {
                 include_object_link: false,
                 labels: labels,
                 name: create_object_group_config.name,
+                update_objects: None,
                 ..Default::default()
             },
         };
