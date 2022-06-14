@@ -94,13 +94,13 @@ impl LS {
             .unwrap()
             .into_inner();
         println!("{:#?}", objects);
-        println!(
-            "IDs: {:#?}",
-            objects
-                .objects
-                .into_iter()
-                .map(|x| x.id)
-                .collect::<Vec<String>>()
-        )
+        // println!(
+        //     "IDs: {:#?}",
+        //     objects
+        //         .objects
+        //         .into_iter()
+        //         .map(|x| x.id)
+        //         .collect::<Vec<String>>()
+        // )
     }
 }
