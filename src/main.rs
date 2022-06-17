@@ -6,6 +6,7 @@ mod describe;
 mod download;
 mod events;
 mod ls;
+mod update;
 mod util;
 
 use clap::{Parser, Subcommand};
@@ -45,6 +46,8 @@ enum Commands {
     ///   /<project_id>/<dataset_id>/_data/<object_group_name>/<object_name>. Datasetversions will be stored under
     ///   /<project_id>/<dataset_id>/_datasetversion/<object_group_name>/<object_name>
     Load(util::cli::Load),
+    /// Updates Objects inside the ObjectGroup
+    Update(util::cli::UpdateRequest),
 }
 
 #[tokio::main]
@@ -102,5 +105,9 @@ async fn main() {
             let mut stream = events::events::Events::new(client.clone());
             stream.create_stream_consumer(request).await;
         },
+        Commands::Update(request) => {
+            let mut update = update::update::Update::new(client.clone());
+            update.update(request).await;
+        }
     };
 }

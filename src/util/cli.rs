@@ -63,6 +63,23 @@ pub struct CreateRequest {
     pub path: String,
 }
 
+#[derive(Parser)]
+pub struct UpdateRequest {
+    /// The operation to apply to the Object Group (currently only delete and add)
+    #[clap(arg_enum, short = 'o')]
+    pub operation: UpdateResource,
+    /// The path to the resource specification file. Examples can be found
+    /// under examples
+    #[clap(short = 'p')]
+    pub path: String,
+}
+
+#[derive(PartialEq, Debug, ArgEnum, Clone)]
+pub enum UpdateResource {
+    Delete,
+    Add,
+}
+
 #[derive(PartialEq, Debug, ArgEnum, Clone)]
 pub enum Resource {
     Project,
