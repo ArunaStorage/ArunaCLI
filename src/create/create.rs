@@ -232,14 +232,12 @@ impl Create {
                     .values()
                     .flatten()
                     .map(|c| {
-                        let label = vec![Label {
+                        let mut labels = additional_labels.clone();
+                        labels.push(Label {
                             key: "Path".to_string(),
                             value: c.to_str().unwrap().to_string(),
-                        }];
-                        let labels = label
-                            .into_iter()
-                            .chain(additional_labels.clone().into_iter())
-                            .collect();
+                        });
+
                         CreateObject {
                             dataset_id: create_og_ff_config.dataset_id.clone(),
                             // ugly
@@ -247,7 +245,7 @@ impl Create {
                             content_len: c.metadata().unwrap().len() as i64,
                             filetype: c.extension().unwrap().to_str().unwrap().to_string(),
                             filename: c.file_name().unwrap().to_str().unwrap().to_string(),
-                            labels: labels,
+                            labels: labels.clone(),
                         }
                     })
                     .collect(),
