@@ -1,8 +1,13 @@
+use std::vec;
+
 use crate::{client::client, util::cli::UpdateRequest};
 
-use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::services::v1::{
-    AddObjectRequest, CreateObjectGroupRevisionRequest, DeleteObjectRequest,
-    UpdateObjectGroupRequest, UpdateObjectsRequests,
+use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::{
+    models::v1::Label as ProtoLabel,
+    services::v1::{
+        AddObjectRequest, CreateObjectGroupRevisionRequest, DeleteObjectRequest,
+        UpdateObjectGroupRequest, UpdateObjectsRequests,
+    },
 };
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -14,8 +19,17 @@ pub struct Update {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateObjectGroup {
     dataset_id: String,
+    name: String,
+    description: String,
     objectgroup_id: String,
+    labels: Vec<Label>,
     objects_ids: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Label {
+    key: String,
+    value: String,
 }
 
 impl Update {
@@ -48,6 +62,17 @@ impl Update {
         let object_group_revision_request = CreateObjectGroupRevisionRequest {
             update_objects: Some(delete_request),
             object_group_id: delete_objects_config.objectgroup_id.clone(),
+            description: delete_objects_config.description,
+            include_object_link: false,
+            labels: delete_objects_config
+                .labels
+                .into_iter()
+                .map(|l| ProtoLabel {
+                    key: l.key,
+                    value: l.value,
+                })
+                .collect(),
+            name: delete_objects_config.name,
             ..Default::default()
         };
 
@@ -60,7 +85,8 @@ impl Update {
             .dataset_object_service
             .update_object_group(request)
             .await
-            .unwrap();
+            .unwrap()
+            .into_inner();
     }
 
     async fn add_objects(&mut self, request: UpdateRequest) {
@@ -80,6 +106,18 @@ impl Update {
 
         let object_group_revision_request = CreateObjectGroupRevisionRequest {
             update_objects: Some(add_request),
+            object_group_id: add_objects_config.objectgroup_id.clone(),
+            description: add_objects_config.description,
+            include_object_link: false,
+            labels: add_objects_config
+                .labels
+                .into_iter()
+                .map(|l| ProtoLabel {
+                    key: l.key,
+                    value: l.value,
+                })
+                .collect(),
+            name: add_objects_config.name,
             ..Default::default()
         };
 
@@ -88,11 +126,14 @@ impl Update {
             create_revision_request: Some(object_group_revision_request),
         };
 
+        // println!("{:?}", request);
+
         self.client
             .dataset_object_service
             .update_object_group(request)
             .await
-            .unwrap();
+            .unwrap()
+            .into_inner();
     }
 
     pub async fn read_request_file<Z: DeserializeOwned>(&self, file_path: String) -> Z {
