@@ -93,6 +93,7 @@ pub enum CreateResource {
     Dataset,
     DatasetVersion,
     ObjectGroup,
+    ObjectGroupFromFile,
     Object,
 }
 

@@ -1,4 +1,7 @@
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use crate::{client::client, util::cli::CreateRequest};
 
@@ -41,13 +44,14 @@ pub struct CreateDatasetVersion {
     objects_ids: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreateObjectGroup {
     name: String,
     dataset_id: String,
     description: String,
     labels: Vec<Label>,
     objects_ids: Option<Vec<String>>,
+    path: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -65,7 +69,7 @@ pub struct CreateObject {
     labels: Vec<Label>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Label {
     key: String,
     value: String,
@@ -83,9 +87,14 @@ impl Create {
                 self.create_dataset_version(request).await
             }
             crate::util::cli::CreateResource::ObjectGroup => {
-                self.create_object_group(request).await
+                self.create_object_group(request, None).await
             }
-            crate::util::cli::CreateResource::Object => self.create_objects(request).await,
+            crate::util::cli::CreateResource::Object => {
+                self.create_objects(request, None).await;
+            }
+            crate::util::cli::CreateResource::ObjectGroupFromFile => {
+                self.create_object_groups_from_dir(request).await
+            }
         }
     }
 
@@ -137,9 +146,15 @@ impl Create {
             .unwrap();
     }
 
-    async fn create_object_group(&mut self, request: CreateRequest) {
-        let create_object_group_config: CreateObjectGroup =
-            self.read_request_file(request.path.clone()).await;
+    async fn create_object_group(
+        &mut self,
+        request: CreateRequest,
+        create_objects_ff: Option<CreateObjectGroup>,
+    ) {
+        let create_object_group_config = match create_objects_ff {
+            Some(COG) => COG,
+            None => self.read_request_file(request.path.clone()).await,
+        };
         let labels = create_object_group_config
             .labels
             .into_iter()
@@ -185,15 +200,96 @@ impl Create {
             .into_inner();
     }
 
-    async fn create_objects(&mut self, request: CreateRequest) {
-        let create_object_batch_config: CreateObjectBatch =
+    async fn create_object_groups_from_dir(&mut self, request: CreateRequest) {
+        let create_og_ff_config: CreateObjectGroup =
             self.read_request_file(request.path.clone()).await;
+
+        let additional_labels: Vec<Label> = create_og_ff_config
+            .labels
+            .clone()
+            .into_iter()
+            .map(|x| Label {
+                key: x.key,
+                value: x.value,
+            })
+            .collect();
+        let origin = create_og_ff_config
+            .path
+            .clone()
+            .expect("No directory specified");
+        let dirs = Path::new(&origin)
+            .read_dir()
+            .unwrap()
+            .filter(|d| d.as_ref().unwrap().path().is_dir());
+
+        let dirs = dirs.map(|d| d.unwrap().path());
+        for group in dirs {
+            let mut path: HashMap<PathBuf, Vec<PathBuf>> =
+                HashMap::from([(PathBuf::from(group), Vec::new())]);
+            let dir = walking_dirs(&mut path);
+            let objects = CreateObjectBatch {
+                objects: dir
+                    .values()
+                    .flatten()
+                    .map(|c| {
+                        let label = vec![Label {
+                            key: "Path".to_string(),
+                            value: c.to_str().unwrap().to_string(),
+                        }];
+                        let labels = label
+                            .into_iter()
+                            .chain(additional_labels.clone().into_iter())
+                            .collect();
+                        CreateObject {
+                            dataset_id: create_og_ff_config.dataset_id.clone(),
+                            // ugly
+                            path: c.canonicalize().unwrap().to_str().unwrap().to_string(),
+                            content_len: c.metadata().unwrap().len() as i64,
+                            filetype: c.extension().unwrap().to_str().unwrap().to_string(),
+                            filename: c.file_name().unwrap().to_str().unwrap().to_string(),
+                            labels: labels,
+                        }
+                    })
+                    .collect(),
+            };
+            // create objects
+            let create_request = CreateRequest {
+                resource: crate::util::cli::CreateResource::Object,
+                path: " ".to_string(),
+            };
+            let ids = self.create_objects(create_request, Some(objects)).await;
+
+            // create object groups for the first level and add ids
+            let create_request_2 = CreateRequest {
+                resource: crate::util::cli::CreateResource::ObjectGroup,
+                path: " ".to_string(),
+            };
+
+            let mut create_og_ff_groups = create_og_ff_config.clone();
+            create_og_ff_groups.objects_ids = Some(ids);
+
+            self.create_object_group(create_request_2, Some(create_og_ff_groups))
+                .await;
+        }
+    }
+
+    async fn create_objects(
+        &mut self,
+        request: CreateRequest,
+        from_dir: Option<CreateObjectBatch>,
+    ) -> Vec<String> {
+        let create_object_batch_config: CreateObjectBatch = match from_dir {
+            Some(request) => request,
+            None => self.read_request_file(request.path.clone()).await,
+        };
         let mut object_map = HashMap::new();
 
         for object in &create_object_batch_config.objects {
             let create_object_request = self.create_object_from_file(object).await;
             object_map.insert(object.path.to_owned(), create_object_request);
         }
+
+        let mut ids = Vec::new();
 
         for (path, request) in object_map {
             let create_objects_response = self
@@ -208,6 +304,8 @@ impl Create {
 
             let size = file.metadata().await.unwrap().len() as usize;
 
+            ids.push(create_objects_response.id.clone());
+
             if size < UPLOAD_BUFFER_SIZE {
                 self.upload_file(path.clone(), create_objects_response.id)
                     .await
@@ -216,6 +314,7 @@ impl Create {
                     .await;
             }
         }
+        ids
     }
 
     async fn upload_file_multipart(&mut self, path: String, object_id: String) {
@@ -348,7 +447,33 @@ impl Create {
         return create_request;
     }
 }
-
+fn walking_dirs(
+    entries: &mut HashMap<PathBuf, Vec<PathBuf>>,
+) -> &mut HashMap<PathBuf, Vec<PathBuf>> {
+    // not efficient because whole map is cloned instead of only keys
+    let dirs = &mut entries.clone();
+    for dir in dirs.keys() {
+        let mut files = Vec::new();
+        for entry in dir.read_dir().expect("read_dir call failed").flatten() {
+            if entry.path().is_dir() {
+                let mut temp_map = HashMap::from([(entry.path().to_path_buf(), Vec::new())]);
+                let rec_dirs = walking_dirs(&mut temp_map);
+                entries.extend(
+                    rec_dirs
+                        .keys()
+                        // too much cloning here, not sure if neccessary
+                        .map(|k| (k.clone(), rec_dirs.get(k).unwrap().clone())),
+                );
+            } else if entry.path().is_file() {
+                files.push(entry.path().to_path_buf());
+            } else {
+                panic!("Not sure how to deal with symlinks or permission errors for now");
+            };
+        }
+        entries.insert(dir.to_path_buf(), files);
+    }
+    entries
+}
 impl Label {
     fn to_proto_label(&self) -> models::v1::Label {
         let label = models::v1::Label {
