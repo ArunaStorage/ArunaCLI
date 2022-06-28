@@ -1,5 +1,3 @@
-use std::vec;
-
 use crate::{client::client, util::cli::UpdateRequest};
 
 use scienceobjectsdb_rust_api::sciobjectsdb::sciobjsdb::api::storage::{
@@ -125,8 +123,6 @@ impl Update {
             id: add_objects_config.objectgroup_id,
             create_revision_request: Some(object_group_revision_request),
         };
-
-        // println!("{:?}", request);
 
         self.client
             .dataset_object_service
