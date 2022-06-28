@@ -52,7 +52,7 @@ pub struct Load {
     pub path_style: DownloadPathStyle,
 }
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 pub struct CreateRequest {
     /// The resource type to create
     #[clap(arg_enum, short = 'r')]

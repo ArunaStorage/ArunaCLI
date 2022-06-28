@@ -11,7 +11,7 @@ mod util;
 
 use clap::{Parser, Subcommand};
 use tonic::transport::ClientTlsConfig;
-use util::config;
+// use util::config;
 
 use crate::download::download_path_handler::CanonicalDownloadPathHandler;
 use crate::download::download_path_handler::FlatpathDownloadManager;

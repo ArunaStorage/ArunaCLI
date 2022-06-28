@@ -152,7 +152,7 @@ impl Create {
         create_objects_ff: Option<CreateObjectGroup>,
     ) {
         let create_object_group_config = match create_objects_ff {
-            Some(COG) => COG,
+            Some(create_object_group) => create_object_group,
             None => self.read_request_file(request.path.clone()).await,
         };
         let labels = create_object_group_config
@@ -201,8 +201,7 @@ impl Create {
     }
 
     async fn create_object_groups_from_dir(&mut self, request: CreateRequest) {
-        let create_og_ff_config: CreateObjectGroup =
-            self.read_request_file(request.path.clone()).await;
+        let create_og_ff_config: CreateObjectGroup = self.read_request_file(request.path).await;
 
         let additional_labels: Vec<Label> = create_og_ff_config
             .labels
@@ -219,7 +218,7 @@ impl Create {
             .expect("No directory specified");
         let dirs = Path::new(&origin)
             .read_dir()
-            .unwrap()
+            .expect("Specified directory is not a directory or permissions are not set")
             .filter(|d| d.as_ref().unwrap().path().is_dir());
 
         let dirs = dirs.map(|d| d.unwrap().path());
@@ -243,7 +242,10 @@ impl Create {
                             // ugly
                             path: c.canonicalize().unwrap().to_str().unwrap().to_string(),
                             content_len: c.metadata().unwrap().len() as i64,
-                            filetype: c.extension().unwrap().to_str().unwrap().to_string(),
+                            filetype: match c.extension() {
+                                Some(c) => c.to_str().unwrap().to_string(),
+                                None => "".to_string(),
+                            },
                             filename: c.file_name().unwrap().to_str().unwrap().to_string(),
                             labels: labels.clone(),
                         }
@@ -266,6 +268,9 @@ impl Create {
             let mut create_og_ff_groups = create_og_ff_config.clone();
             create_og_ff_groups.objects_ids = Some(ids);
 
+            //println!("{:?}", create_request);
+            //println!("{:?}", create_request_2);
+            //println!("{:?}", create_og_ff_groups);
             self.create_object_group(create_request_2, Some(create_og_ff_groups))
                 .await;
         }
