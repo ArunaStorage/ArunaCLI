@@ -268,9 +268,6 @@ impl Create {
             let mut create_og_ff_groups = create_og_ff_config.clone();
             create_og_ff_groups.objects_ids = Some(ids);
 
-            //println!("{:?}", create_request);
-            //println!("{:?}", create_request_2);
-            //println!("{:?}", create_og_ff_groups);
             self.create_object_group(create_request_2, Some(create_og_ff_groups))
                 .await;
         }
@@ -470,6 +467,8 @@ fn walking_dirs(
             } else if entry.path().is_file() {
                 files.push(entry.path().to_path_buf());
             } else {
+                // maybe panic is the right call because user should be notified that
+                // not everything is uploaded as expected,
                 panic!("Not sure how to deal with symlinks or permission errors for now");
             };
         }
